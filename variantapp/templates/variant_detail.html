@@ -1,0 +1,344 @@
+{% load static %}
+
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>CU-GV Database | Variant Results</title>
+  <!-- Favicon icon shown in browser tab -->
+  <link rel="shortcut icon"
+    href="https://cdn2.iconfinder.com/data/icons/whcompare-isometric-web-hosting-servers/50/database-128.png">
+  <!-- FontAwesome CDN for icons used in nav bar and buttons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  <!-- Link to external CSS file for styling this results page -->
+  <link rel="stylesheet" href="{% static 'variantapp/variant_detail.css' %}">
+  <!-- IGV.js script from CDN for genome visualization -->
+  <script src="https://cdn.jsdelivr.net/npm/igv@2.13.2/dist/igv.min.js"></script>
+  <!-- Script to show/hide navbar title based on scroll position of main heading -->
+  <script>
+    document.addEventListener("DOMContentLoaded", function () {
+      const navbarTitle = document.getElementById("navbarTitle");
+      const mainHeading = document.getElementById("mainHeading");
+      // IntersectionObserver watches if the main heading is visible
+      const observer = new IntersectionObserver(
+        ([entry]) => {
+          // If main heading is not visible, show the navbar title
+          if (!entry.isIntersecting) {
+            navbarTitle.classList.add("show");
+          } else {
+            // If main heading is visible, hide the navbar title
+            navbarTitle.classList.remove("show");
+          }
+        },
+        { threshold: 0.1 }  // Trigger when at least 10% of mainHeading is visible
+      );
+      observer.observe(mainHeading);
+    });
+  </script>
+</head>
+
+<body>
+  <!-- Loading overlay shown while page or data is loading -->
+  <div id="loading-overlay">
+    <div class="spinner"></div> <!-- Spinner animation -->
+  </div>
+  <!-- Script to hide loading overlay once page fully loads -->
+  <script>
+    window.addEventListener('load', function () {
+      const overlay = document.getElementById('loading-overlay');
+      console.log("Window fully loaded, hiding overlay.");
+      // Check if the results table has any rows loaded
+      const tableReady = document.querySelectorAll('#resultTable tbody tr').length > 0;
+      if (tableReady && overlay) {
+        // Hide overlay immediately if table is ready
+        overlay.style.display = 'none';
+      } else {
+        // Fallback: hide overlay after 3 seconds even if table isn't ready
+        console.warn("Table not ready or overlay missing, fallback to hide anyway.");
+        setTimeout(() => {
+          if (overlay) overlay.style.display = 'none';
+        }, 3000);
+      }
+    });
+  </script>
+  <!-- Top navigation bar with back button, dynamic title, and logout -->
+  <div class="top-navbar">
+    <!-- Back to homepage/search page link with database icon -->
+    <a href="/" class="back-button" aria-label="Back to search page">
+      <i class="fas fa-database" style="margin-right: 8px;"></i>CU-GV Database
+    </a>
+    <!-- Navbar title that appears/disappears on scroll -->
+    <div class="nav-title" id="navbarTitle">Variant Results : {{ query }}</div>
+    <!-- Logout button with icon -->
+    <a class="logout" href="{% url 'logout' %}">
+      <i class="fas fa-sign-out-alt" aria-hidden="true"></i> LOGOUT
+    </a>
+  </div>
+  <!-- Sticky heading shown at top of page content -->
+  <div class="sticky-wrapper">
+    <h2 id="mainHeading">Variant Results : {{ query }}</h2>
+  </div>
+  <!-- Main content wrapper -->
+  <div class="content-wrapper">
+    <!-- Show the results table only if there are combined_variants -->
+    {% if combined_variants %}
+    <div
+      style="max-height: 500px; overflow-y: auto; border: 1px solid #ccc; padding: 8px; border-radius: 12px; margin-bottom: 10px;">
+      <!-- Results table with accessible roles and headers -->
+      <table border="0" cellpadding="0" cellspacing="0" id="resultTable" aria-label="Variant results table">
+        <thead>
+          <tr>
+            <th scope="col">Chr</th>
+            <th scope="col">Pos</th>
+            <th scope="col">Variant ID</th>
+            <th scope="col">REF</th>
+            <th scope="col">ALT</th>
+            <th scope="col">Gene</th>
+            <th scope="col">Consequence</th>
+            <th scope="col">
+              <div class="sort-group">
+                <span>Impact</span>
+                <div class="sort-buttons" role="group" aria-label="Sort IMPACT by severity">
+                  <button onclick="sortImpactBySeverity(7, 'desc', this)" class="sort-btn up"
+                    title="Sort IMPACT by severity descending" aria-pressed="false">
+                    <svg viewBox="0 0 10 10" aria-hidden="true">
+                      <path d="M5 2 L2 7 H8 Z" />
+                    </svg>
+                  </button>
+                  <button onclick="sortImpactBySeverity(7, 'asc', this)" class="sort-btn down"
+                    title="Sort IMPACT by severity ascending" aria-pressed="false">
+                    <svg viewBox="0 0 10 10" aria-hidden="true">
+                      <path d="M5 8 L2 3 H8 Z" />
+                    </svg>
+                  </button>
+                </div>
+              </div>
+            </th>
+            <th scope="col">
+              <div class="sort-group">
+                <span>AF (SR)</span>
+                <div class="sort-buttons" role="group" aria-label="Sort AF column">
+                  <button onclick="sortTableByColumn(8, 'desc', this)" class="sort-btn up" title="Sort AF descending"
+                    aria-pressed="false">
+                    <svg viewBox="0 0 10 10" aria-hidden="true">
+                      <path d="M5 2 L2 7 H8 Z" />
+                    </svg>
+                  </button>
+                  <button onclick="sortTableByColumn(8, 'asc', this)" class="sort-btn down" title="Sort AF ascending"
+                    aria-pressed="false">
+                    <svg viewBox="0 0 10 10" aria-hidden="true">
+                      <path d="M5 8 L2 3 H8 Z" />
+                    </svg>
+                  </button>
+                </div>
+              </div>
+            </th>
+            <th scope="col">
+              <div class="sort-group">
+                <span>AF (LR)</span>
+                <div class="sort-buttons" role="group" aria-label="Sort AF column">
+                  <button onclick="sortTableByColumn(9, 'desc', this)" class="sort-btn up" title="Sort AF descending"
+                    aria-pressed="false">
+                    <svg viewBox="0 0 10 10" aria-hidden="true">
+                      <path d="M5 2 L2 7 H8 Z" />
+                    </svg>
+                  </button>
+                  <button onclick="sortTableByColumn(9, 'asc', this)" class="sort-btn down" title="Sort AF ascending"
+                    aria-pressed="false">
+                    <svg viewBox="0 0 10 10" aria-hidden="true">
+                      <path d="M5 8 L2 3 H8 Z" />
+                    </svg>
+                  </button>
+                </div>
+              </div>
+            </th>
+            <th scope="col">
+              <div class="sort-group">
+                <span>AC (SR)</span>
+                <div class="sort-buttons" role="group" aria-label="Sort AF column">
+                  <button onclick="sortTableByColumn(10, 'desc', this)" class="sort-btn up" title="Sort AF descending"
+                    aria-pressed="false">
+                    <svg viewBox="0 0 10 10" aria-hidden="true">
+                      <path d="M5 2 L2 7 H8 Z" />
+                    </svg>
+                  </button>
+                  <button onclick="sortTableByColumn(10, 'asc', this)" class="sort-btn down" title="Sort AF ascending"
+                    aria-pressed="false">
+                    <svg viewBox="0 0 10 10" aria-hidden="true">
+                      <path d="M5 8 L2 3 H8 Z" />
+                    </svg>
+                  </button>
+                </div>
+              </div>
+            </th>
+            <th scope="col">AN (SR)</th>
+            <th scope="col" style="text-align: center;">View Patients</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for variant in combined_variants %}
+          <tr data-chrom="{{ variant.chromosome }}" data-pos="{{ variant.position }}" data-alt="{{ variant.alt }}">
+            <td>{{ variant.chromosome }}</td>
+            <td>{{ variant.position }}</td>
+            <td>
+              {% if variant.variant_id %}
+              {% if variant.variant_id == '.' %}
+              {{ variant.variant_id }}
+              {% else %}
+              <a href="https://www.ncbi.nlm.nih.gov/snp/{{ variant.variant_id }}" target="_blank"
+                rel="noopener noreferrer" title="View {{ variant.variant_id }} on dbSNP">
+                {{ variant.variant_id }}
+              </a>
+              {% endif %}
+              {% else %}
+              -
+              {% endif %}
+            </td>
+            <td>{{ variant.ref }}</td>
+            <td>{{ variant.alt }}</td>
+            <td class="gene-cell" title="">Loading...</td>
+            <td class="consequence-cell" title="">Loading...</td>
+            <td class="impact-cell" title="">Loading...</td>
+            <td>{{ variant.af_shortread|default:"-" }}</td>
+            <td>{{ variant.af_longread|default:"-" }}</td>
+            <td>{{ variant.ac|default:"-" }}</td>
+            <td>{{ variant.an|default:"-" }}</td>
+            <td class="centered-cell">
+              <div class="button-group">
+                <button title="View Patients Short Read" type="button" class="view-btn"
+                  aria-label="View short read patients for variant {{ variant.unique_key }}"
+                  onclick="showPopup('{{ variant.unique_key|escapejs }}', 'SR')">SR<br>(4703)</button>
+                <button title="View Patients Long Read" type="button" class="view-btn"
+                  aria-label="View long read patients for variant {{ variant.unique_key }}"
+                  onclick="showPopup('{{ variant.unique_key|escapejs }}', 'LR')">LR<br>(363)</button>
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    <div id="rowCount" role="status" aria-live="polite"></div>
+    <div id="igv-div" style="background-color: white; padding: 15px; border-radius: 8px; display:none;"></div>
+    <button id="load-igv-btn">Show IGV</button>
+    <script src="https://cdn.jsdelivr.net/npm/igv@2.14.5/dist/igv.min.js"></script>
+    <script>
+      document.addEventListener("DOMContentLoaded", function () {
+        const igvContainer = document.getElementById("igv-div");
+        const loadButton = document.getElementById("load-igv-btn");
+        loadButton.addEventListener("click", () => {
+          loadButton.style.display = "none";
+          igvContainer.style.display = "block";
+          const chromosome = "{{ combined_variants.0.chromosome|default:'chr1'|safe }}";
+          const posStr = "{{ combined_variants.0.position|default:'1000000'|safe }}";
+          const position = parseInt(posStr);
+          if (isNaN(position)) {
+            console.error("Position is not a valid number:", posStr);
+            return;
+          }
+          const start = Math.max(0, position - 1800);
+          const end = position + 1800;
+          const locus = chromosome + ":" + start + "-" + end;
+          console.log("Chromosome:", chromosome);
+          console.log("Position:", position);
+          console.log("Locus:", locus);
+          const options = {
+            genome: "hg38",
+            locus: locus,
+            tracks: [
+              {
+                name: "RefSeq Genes",
+                type: "annotation",
+                format: "refgene",
+                sourceType: "file",
+                url: "https://hgdownload.soe.ucsc.edu/goldenPath/hg38/database/refGene.txt.gz",
+                displayMode: "EXPANDED"
+              }
+            ]
+          };
+          igv.createBrowser(igvContainer, options)
+            .then(browser => {
+              console.log("IGV loaded successfully at locus:", locus);
+            })
+            .catch(error => {
+              console.error("IGV failed to load:", error);
+            });
+        });
+      });
+    </script>
+    {% else %}
+    <p style="text-align:center; margin-top: 30px; font-style: italic; color: #888;">No variant found for this query.
+    </p>
+    {% endif %}
+    <!-- Popup modal -->
+    <div id="popup" role="dialog" aria-modal="true" aria-labelledby="popup-title" aria-describedby="popup-desc">
+      <div id="popup-header">
+        <span id="popup-title">Patient Information</span>
+        <button type="button" onclick="closePopup()" aria-label="Close popup" id="popup-close">Close</button>
+      </div>
+      <input type="text" id="patient-search" placeholder="Search patient ID..." aria-label="Search patient ID"
+        style="width: 100%; padding: 8px; margin-bottom: 10px; box-sizing: border-box; border: 1px solid #ccc; border-radius: 4px;">
+      <div id="popup-content" style="clear:both;"></div>
+    </div>
+  </div>
+  <footer class="footer">
+    <div class="footer-logos">
+      <a href="https://www.instagram.com/jxrawxt/" target="_blank">
+        <i class="fab fa-instagram fa-2x" style="color: black;"></i>
+      </a>
+      <a href="https://www.instagram.com/_sadboywifi" target="_blank">
+        <i class="fab fa-instagram fa-2x" style="color: black;"></i>
+      </a>
+      <a href="https://github.com/jxrxxwxt" target="_blank">
+        <i class="fab fa-github fa-2x" style="color: black;"></i>
+      </a>
+    </div>
+    <div class="footer-text">
+      &copy; 2025 Jirawat Sadaon, Songphon Kaewkankoon, Chulalongkorn Hospital. All rights reserved.
+    </div>
+  </footer>
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      document.querySelectorAll('tbody tr').forEach(row => {
+        const chrom = row.dataset.chrom;
+        const pos = row.dataset.pos;
+        const alt = row.dataset.alt;
+        if (!chrom || !pos || !alt) return;
+        const geneCell = row.querySelector('.gene-cell');
+        const consequenceCell = row.querySelector('.consequence-cell');
+        const impactCell = row.querySelector('.impact-cell');
+        geneCell.textContent = 'Loading...';
+        consequenceCell.textContent = 'Loading...';
+        impactCell.textContent = 'Loading...';
+        const setFallback = () => {
+          geneCell.textContent = '-';
+          consequenceCell.textContent = '-';
+          impactCell.textContent = '-';
+        };
+        fetch(`/get_variant_annotation_ajax?chrom=${chrom}&pos=${pos}&alt=${alt}`)
+          .then(response => response.json())
+          .then(data => {
+            if (!data || data.error) {
+              setFallback();
+              return;
+            }
+            geneCell.textContent = data.gene || '-';
+            geneCell.title = data.gene || '-';
+            consequenceCell.textContent = data.consequence || '-';
+            consequenceCell.title = data.consequence || '-';
+            impactCell.textContent = data.impact || '-';
+            impactCell.title = data.impact || '-';
+          })
+          .catch(err => {
+            console.error('Failed to load annotation:', err);
+            setFallback();
+          });
+      });
+    });
+  </script>
+  <script src="{% static 'variantapp/variant_detail.js' %}"></script>
+</body>
+
+</html>

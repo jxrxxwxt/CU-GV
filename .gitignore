@@ -1,0 +1,52 @@
+# Python bytecode
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Django database (SQLite)
+db.sqlite3
+
+# Local settings and secrets
+.env
+local_settings.py
+
+# Django static/media files (generated or user-uploaded)
+staticfiles/
+media/
+
+# VS Code project settings
+.vscode/
+
+# Virtual environments
+venv/
+.venv/
+ENV/
+env/
+
+# Docker
+.dockerignore
+docker-compose.override.yml
+
+
+# OS-specific
+.DS_Store
+Thumbs.db
+
+# Logs and test output
+*.log
+coverage/
+htmlcov/
+.tox/
+.nox/
+.coverage
+.cache/
+.pytest_cache/
+test_results/
+
+# Mypy & Pyre
+.mypy_cache/
+.pyre/
+
+# Pipenv / Poetry lock files (if unused)
+Pipfile.lock
+poetry.lock

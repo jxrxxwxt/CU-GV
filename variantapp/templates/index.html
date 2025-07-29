@@ -1,0 +1,61 @@
+{% load static %}
+
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>CU-GV Database</title>
+  <!-- Favicon icon displayed in browser tab -->
+  <link rel="shortcut icon"
+    href="https://cdn2.iconfinder.com/data/icons/whcompare-isometric-web-hosting-servers/50/database-128.png">
+  <!-- Link to external CSS file for styling this page -->
+  <link rel="stylesheet" href="{% static 'variantapp/index.css' %}">
+  <!-- FontAwesome icons CDN for logout icon and other icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+</head>
+
+<body>
+  <!-- Logout button fixed and floating on the page -->
+  <a href="{% url 'logout' %}" class="logout floating-logout" aria-label="Logout">
+    <!-- FontAwesome logout icon -->
+    <i class="fas fa-sign-out-alt"></i> LOGOUT
+  </a>
+  <!-- Canvas element for animated or styled background -->
+  <canvas id="backgroundCanvas"></canvas>
+  <!-- Main content wrapper -->
+  <div class="container-wrapper">
+    <div class="container">
+      <!-- Animated logo image -->
+      <img src="https://cdn.pixabay.com/animation/2022/08/16/14/11/14-11-41-268_512.gif" alt="LnwZa Logo"
+        class="logo" />
+      <!-- Main page heading -->
+      <h1>CU-GV Database</h1>
+      <!-- Tagline or description -->
+      <p>Your trusted variant search platform</p>
+      <!-- Search form for variant queries -->
+      <!-- Uses GET method, accessible with proper ARIA roles and labels -->
+      <form action="/variant_detail" method="get" role="search" aria-label="Variant search form">
+        <!-- Text input for chromosome position or variant ID -->
+        <input type="text" name="query" placeholder="Enter your search here"
+          aria-label="Search variant by chromosome position or variant ID" required />
+        <!-- Submit button -->
+        <button type="submit" id="search-btn">Search</button>
+      </form>
+      <!-- Example queries below the form to help users -->
+      <div class="example-queries">
+        <span>Examples -</span>
+        <!-- Example query by chromosome position -->
+        <span class="example-item">Position : <a href="#"
+            onclick="autoSearch('chr1_13424_A_G')">chr1_13424_A_G</a>,</span>
+        <!-- Example query by variant ID -->
+        <span class="example-item">Variant ID : <a href="#" onclick="autoSearch('rs4951867')">rs4951867</a></span>
+      </div>
+    </div>
+  </div>
+  <!-- Link to external JavaScript file handling background animation and example search auto-fill -->
+  <script src="{% static 'variantapp/index.js' %}"></script>
+</body>
+
+</html>

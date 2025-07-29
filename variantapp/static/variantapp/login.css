@@ -1,0 +1,129 @@
+/* ---------- Theme Colors (CSS Variables) ---------- */
+:root {
+  --bg: #e8f0f2; /* Very light blue-green background */
+  --bg-alt: #c8d9db; /* Muted teal for alternate background */
+  --text: #3a4a4c; /* Dark slate gray text for readability */
+  --accent: #7ca4a8; /* Soft teal accent */
+  --accent-hover: #5e7a7d; /* Darker teal for hover */
+  --highlight: #4a6a6c; /* Deep teal for headings */
+  --border: #a3b7b9; /* Soft muted gray-teal for borders */
+  --white: #ffffff; /* White for popups/tables */
+}
+
+/* ---------- Global Page Setup ---------- */
+html,
+body {
+  margin: 0; /* Remove default margin */
+  padding: 0; /* Remove default padding */
+  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif; /* Clean, readable sans-serif font stack */
+  background-color: var(--bg); /* Apply main background color */
+  color: var(--text); /* Apply main text color */
+  height: 100vh; /* Full viewport height to fill screen */
+  display: flex; /* Enable flexbox for easy centering */
+  justify-content: center; /* Center content horizontally */
+  align-items: center; /* Center content vertically */
+}
+
+/* ---------- Full Page Wrapper ---------- */
+.page-wrapper {
+  min-height: 100vh; /* Minimum height fills viewport */
+  display: flex; /* Use flexbox layout */
+  justify-content: center; /* Center content horizontally */
+  align-items: center; /* Center content vertically */
+  position: relative; /* Establish stacking context */
+  z-index: 1; /* Keep above background layers */
+}
+
+/* ---------- Fullscreen Background Canvas ---------- */
+#backgroundCanvas {
+  position: fixed; /* Fixed position to cover full viewport */
+  top: 0; /* Align to top */
+  left: 0; /* Align to left */
+  width: 100vw; /* Full viewport width */
+  height: 100vh; /* Full viewport height */
+  z-index: 0; /* Positioned behind all other content */
+  background: var(--bg); /* Use the main background color */
+}
+
+/* ---------- Login Form Container ---------- */
+.login-container {
+  background: var(
+    --white
+  ); /* White background to contrast with page background */
+  padding: 30px 40px; /* Vertical and horizontal padding for spacing */
+  border-radius: 16px; /* Rounded corners for softer look */
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1); /* Soft drop shadow for depth */
+  width: 600px; /* Fixed width for consistent layout */
+  border-left: 6px solid var(--accent); /* Colored accent border on the left side as visual cue */
+  box-sizing: border-box; /* Include padding and border in width */
+}
+
+/* ---------- Form Title ---------- */
+.login-title {
+  text-align: center; /* Center the title text */
+  font-size: 24px; /* Larger font size for prominence */
+  font-weight: 700; /* Bold font weight */
+  color: var(--highlight); /* Use highlight color for emphasis */
+  margin-bottom: 25px; /* Space below the title */
+}
+
+/* ---------- Form Group Container ---------- */
+.form-group {
+  margin-bottom: 20px; /* Space below each form group for separation */
+}
+
+/* ---------- Field Labels ---------- */
+.form-group label {
+  display: block; /* Labels take full width */
+  margin-bottom: 6px; /* Small space below labels */
+  font-weight: 600; /* Semi-bold font for readability */
+  color: var(--text); /* Consistent text color */
+}
+
+/* ---------- Input Fields ---------- */
+.form-group input {
+  width: 100%; /* Inputs fill their container width */
+  height: 38px; /* Fixed height for consistency */
+  padding: 10px 14px; /* Inner spacing for comfortable typing */
+  border: 1px solid var(--border); /* Subtle border color matching theme */
+  border-radius: 8px; /* Slightly rounded corners */
+  font-size: 15px; /* Comfortable readable font size */
+  box-sizing: border-box; /* Include padding and border in element’s total width */
+  line-height: 1.2; /* Line height for vertical text spacing */
+  transition: border-color 0.3s ease; /* Smooth transition for border color on focus */
+}
+
+/* ---------- Focus Effect for Input Fields ---------- */
+.form-group input:focus {
+  border-color: var(--accent); /* Change border color to accent on focus */
+  outline: none; /* Remove default browser outline */
+  box-shadow: 0 0 0 2px rgba(136, 160, 150, 0.2); /* Soft glow to indicate focus */
+}
+
+/* ---------- Login Button ---------- */
+button.login-btn {
+  background-color: var(--accent); /* Accent color background */
+  color: white; /* White text for contrast */
+  border: none; /* Remove default border */
+  padding: 10px 20px; /* Comfortable padding */
+  border-radius: 20px; /* Rounded pill shape */
+  font-weight: 600; /* Semi-bold font weight */
+  cursor: pointer; /* Pointer cursor on hover */
+  width: 100%; /* Button takes full container width */
+  transition: background-color 0.3s ease, box-shadow 0.3s ease; /* Smooth hover effects */
+  box-shadow: 0 4px 8px rgba(52, 152, 219, 0.2); /* Soft outer shadow */
+}
+
+/* ---------- Hover Effect for Login Button ---------- */
+button.login-btn:hover {
+  background-color: var(--accent-hover); /* Darker accent color on hover */
+  box-shadow: 0 6px 15px rgba(41, 128, 185, 0.3); /* Enhanced shadow on hover */
+}
+
+/* ---------- Error Message Styling ---------- */
+.error-message {
+  color: red; /* Red text for errors */
+  font-weight: 600; /* Semi-bold font weight */
+  margin-bottom: 16px; /* Space below the error message */
+  text-align: center; /* Center the message text */
+}

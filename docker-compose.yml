@@ -1,0 +1,49 @@
+services:
+  web:
+    image: jxrxwxt/weblnwza:v0
+    container_name: web_container
+    volumes:
+      - ./staticfiles:/app/staticfiles
+    depends_on:
+      - db
+    env_file:
+      - .env
+    command: gunicorn cra_genomics.wsgi:application --bind 0.0.0.0:8000 --workers 16 --timeout 120
+    expose:
+      - "8000" # Expose port for Nginx
+    restart: always
+    networks:
+      - cra_net
+  db:
+    image: postgres:13
+    container_name: db_container
+    restart: always
+    environment:
+      POSTGRES_DB: ${DB_NAME}
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+    volumes:
+      - pgdata:/var/lib/postgresql/data/
+    ports:
+      - "5432:5432"
+    networks:
+      - cra_net
+  nginx:
+    image: nginx:alpine
+    container_name: nginx_container
+    ports:
+      - "8080:80"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./staticfiles:/app/staticfiles:ro # For Nginx to access static file
+    depends_on:
+      - web
+    networks:
+      - cra_net
+
+volumes:
+  pgdata:
+  static_volume:
+
+networks:
+  cra_net:

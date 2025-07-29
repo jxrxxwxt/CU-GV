@@ -1,0 +1,138 @@
+{% load static %}
+
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CU-GV Database | Login</title>
+  <!-- Link to external CSS file for login styling -->
+  <link rel="stylesheet" href="{% static 'variantapp/login.css' %}">
+  <!-- Favicon icon shown on the browser tab -->
+  <link rel="shortcut icon"
+    href="https://cdn2.iconfinder.com/data/icons/whcompare-isometric-web-hosting-servers/50/database-128.png">
+</head>
+
+<body>
+  <!-- Canvas element for animated background -->
+  <canvas id="backgroundCanvas"></canvas>
+  <!-- Login form container -->
+  <div class="page-wrapper">
+    <div class="login-container">
+      <h2 class="login-title">Login</h2>
+      <!-- Show error message if login form has errors -->
+      {% if form.errors %}
+      <div class="error-message">
+        Incorrect username or password.
+      </div>
+      {% endif %}
+      <!-- Login form using POST method -->
+      <form method="post">
+        {% csrf_token %}
+        <!-- Username input field -->
+        <div class="form-group">
+          <label for="id_username">Username</label>
+          {{ form.username }}
+        </div>
+        <!-- Password input field -->
+        <div class="form-group password-group">
+          <label for="id_password">Password</label>
+          {{ form.password }}
+        </div>
+        <!-- Submit button -->
+        <button type="submit" class="login-btn">Login</button>
+      </form>
+    </div>
+  </div>
+  <script>
+    // Get the canvas and its 2D rendering context
+    const canvas = document.getElementById("backgroundCanvas");
+    const ctx = canvas.getContext("2d");
+    let width, height;
+    // Resize canvas to fill the entire viewport
+    function resize() {
+      width = canvas.width = window.innerWidth;
+      height = canvas.height = window.innerHeight;
+    }
+    // Resize canvas when window size changes
+    window.addEventListener("resize", resize);
+    resize();
+    // Load DNA image to use for floating animation
+    const dnaImage = new Image();
+    dnaImage.src = "https://www.pngmart.com/files/7/DNA-PNG-Transparent.png";
+    // Class representing each floating DNA icon on the canvas
+    class FloatingDNA {
+      constructor() {
+        this.reset();
+      }
+      // Initialize or reset properties randomly for each DNA icon
+      reset() {
+        this.x = Math.random() * width;             // Random horizontal position
+        this.y = Math.random() * height;            // Random vertical position
+        this.dx = (Math.random() - 0.5) * 1.5;      // Horizontal velocity (left/right swing)
+        this.dy = (Math.random() - 0.5) * 1.5;      // Vertical velocity (up/down swing)
+        this.size = 30 + Math.random() * 30;        // Random size between 30 and 60 px
+        this.angle = Math.random() * 2 * Math.PI;   // Starting rotation angle (radians)
+        this.rotationSpeed = (Math.random() - 0.5) * 0.02; // Rotation speed and direction
+      }
+      // Update position and rotation on each animation frame
+      update() {
+        this.x += this.dx;
+        this.y += this.dy;
+        this.angle += this.rotationSpeed;
+        // Wrap around horizontally when moving off screen
+        if (this.x > width + this.size) this.x = -this.size;
+        else if (this.x < -this.size) this.x = width + this.size;
+        // Wrap around vertically when moving off screen
+        if (this.y > height + this.size) this.y = -this.size;
+        else if (this.y < -this.size) this.y = height + this.size;
+      }
+      // Draw the DNA image with current position and rotation
+      draw(ctx) {
+        ctx.save();
+        ctx.translate(this.x, this.y);
+        ctx.rotate(this.angle);
+        ctx.drawImage(
+          dnaImage,
+          -this.size / 2,
+          -this.size / 2,
+          this.size,
+          this.size
+        );
+        ctx.restore();
+      }
+    }
+    // Array to hold all floating DNA objects
+    const floatingDNAs = [];
+    const NUM_DNA = 20;  // Number of DNA icons floating on the screen
+    // Initialize the floating DNA icons
+    function init() {
+      for (let i = 0; i < NUM_DNA; i++) {
+        floatingDNAs.push(new FloatingDNA());
+      }
+    }
+    // Animation loop: clear canvas, update and draw each DNA, then repeat
+    function animate() {
+      ctx.clearRect(0, 0, width, height);
+      for (let dna of floatingDNAs) {
+        dna.update();
+        dna.draw(ctx);
+      }
+      requestAnimationFrame(animate);
+    }
+    // Start animation once DNA image is loaded
+    dnaImage.onload = () => {
+      init();
+      animate();
+    };
+    // Function to automatically submit a search query (unused here)
+    function autoSearch(queryText) {
+      const input = document.querySelector('input[name="query"]');
+      input.value = queryText;
+      input.form.submit(); // Automatically submit the form
+    }
+  </script>
+</body>
+
+</html>
