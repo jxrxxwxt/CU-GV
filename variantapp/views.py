@@ -5,7 +5,12 @@ from django.contrib.auth import logout
 from django.core.cache import cache
 from django.shortcuts import render, redirect
 from django.http import JsonResponse
-from .models import Variant, PatientGenotype, LongReadVariantV2, LongReadGenotypeV2
+from .models import (
+    ShortReadVariant,
+    ShortReadGenotype,
+    LongReadVariantV2,
+    LongReadGenotypeV2,
+)
 from .forms import CustomLoginForm
 import requests
 
@@ -129,7 +134,7 @@ def variant_detail(request):
         pass
     elif "_" in query:
         # Query is treated as unique_key format chr_pos_ref_alt
-        variant_objs = list(Variant.objects.filter(unique_key=query))
+        variant_objs = list(ShortReadVariant.objects.filter(unique_key=query))
 
         # Try to find matching long-read variant by variant_id
         try:
@@ -139,7 +144,7 @@ def variant_detail(request):
             pass
     else:
         # Query is treated as variant_id (rsID)
-        variant_objs = list(Variant.objects.filter(variant_id=query))
+        variant_objs = list(ShortReadVariant.objects.filter(variant_id=query))
 
         if variant_objs:
             first_variant = variant_objs[0]
@@ -194,56 +199,34 @@ def variant_detail(request):
     return render(request, "variant_detail.html", context)
 
 
-def get_variant_list():
-    """
-    Retrieves a cached list of variant unique keys for quick lookup.
-    If not cached, queries database and caches result for 1 hour.
-    """
-    variant_list = cache.get("variant_list")
-    if variant_list is None:
-        variant_list = list(
-            Variant.objects.order_by(
-                "chromosome", "position", "ref", "alt"
-            ).values_list("unique_key", flat=True)
-        )
-        cache.set("variant_list", variant_list, 3600)  # cache for 1 hour
-    return variant_list
-
-
 @login_required
 @require_GET
 def get_patients_ajax(request):
     """
-    AJAX view to retrieve patients carrying a specific variant.
-    Supports: filtering, searching, pagination, caching.
+    AJAX view to retrieve short-read patient genotype data for a variant.
+    Accepts: unique_key (variant_id), supports caching, filtering, searching, pagination.
     """
-    per_page = 50
     input_key = request.GET.get("unique_key")
     page = int(request.GET.get("page", 1))
     filter_type = request.GET.get("filter", "all")
     search_term = request.GET.get("search", "").lower()
     preload = request.GET.get("preload", "false").lower() == "true"
+    per_page = 50
 
     if not input_key:
-        return JsonResponse({"error": "No variant key provided"})
+        return JsonResponse({"error": "No unique_key provided"})
 
-    # Determine if input_key is unique_key or variant_id
-    if "_" in input_key:
-        unique_key = input_key
-    else:
-        try:
-            variant = Variant.objects.get(variant_id=input_key)
-            unique_key = variant.unique_key
-        except Variant.DoesNotExist:
-            return JsonResponse({"error": "Variant ID not found"})
-
+    # Determine unique_key from variant_id or direct input
     try:
-        variant_list = get_variant_list()
-        variant_index = variant_list.index(unique_key)
-    except ValueError:
-        return JsonResponse({"error": "Unique key not found"})
+        if "_" in input_key:
+            variant = ShortReadVariant.objects.get(unique_key=input_key)
+        else:
+            variant = ShortReadVariant.objects.get(variant_id=input_key)
+        unique_key = variant.unique_key
+    except ShortReadVariant.DoesNotExist:
+        return JsonResponse({"error": "Variant not found"})
 
-    # Try cache
+    # Check cache
     cache_key = f"shortread_patients_data:{unique_key}"
     cached_data = cache.get(cache_key)
 
@@ -254,37 +237,39 @@ def get_patients_ajax(request):
         total_homo = cached_data["total_homo"]
         total_hetero = cached_data["total_hetero"]
     else:
+        # Query all genotypes of this variant
+        genotype_qs = ShortReadGenotype.objects.select_related("patient").filter(
+            variant=variant
+        )
+
         data_all = []
         data_homo = []
         data_hetero = []
         total_homo = 0
         total_hetero = 0
 
-        for p in PatientGenotype.objects.values(
-            "patient_id", "genotype_string", "gender", "diagnosis"
-        ).iterator(chunk_size=100):
-            gstring = p["genotype_string"]
-            if not gstring or variant_index >= len(gstring):
-                continue
-            val = gstring[variant_index]
+        for entry in genotype_qs.iterator(chunk_size=100):
+            genotype = entry.genotype
+            patient = entry.patient
 
-            patient_info = {
-                "patient_id": p["patient_id"],
-                "gender": p["gender"] or "",
-                "diagnosis": p["diagnosis"] or "",
+            patient_data = {
+                "patient_id": patient.patient_id,
+                "genotype": genotype,
+                "gender": patient.gender or "",
+                "diagnosis": patient.diagnosis or "",
             }
 
-            if val == "1":
-                patient_info["genotype"] = "0/1"
-                total_hetero += 1
-                data_hetero.append(patient_info)
-                data_all.append(patient_info)
-            elif val == "2":
-                patient_info["genotype"] = "1/1"
+            if genotype == "1/1":
+                data_homo.append(patient_data)
                 total_homo += 1
-                data_homo.append(patient_info)
-                data_all.append(patient_info)
+            elif genotype == "0/1":
+                data_hetero.append(patient_data)
+                total_hetero += 1
 
+            if genotype in ["0/1", "1/1"]:
+                data_all.append(patient_data)
+
+        # Store cache for 1 hour
         cache.set(
             cache_key,
             {
@@ -297,26 +282,29 @@ def get_patients_ajax(request):
             timeout=3600,
         )
 
+    # Apply search filtering
     if search_term:
 
         def matches(p):
             return (
-                search_term in (p["patient_id"] or "").lower()
-                or search_term in (p["genotype"] or "").lower()
-                or search_term in (p["gender"] or "").lower()
-                or search_term in (p["diagnosis"] or "").lower()
+                search_term in p["patient_id"].lower()
+                or search_term in p["genotype"].lower()
+                or search_term in p["gender"].lower()
+                or search_term in p["diagnosis"].lower()
             )
 
         data_all = list(filter(matches, data_all))
         data_homo = list(filter(matches, data_homo))
         data_hetero = list(filter(matches, data_hetero))
 
+    # Pagination function
     def paginate(data):
         total = len(data)
         total_pages = (total + per_page - 1) // per_page
         pages = [data[i * per_page : (i + 1) * per_page] for i in range(total_pages)]
         return {"pages": pages, "total": total, "total_pages": total_pages}
 
+    # Prepare result
     if preload:
         result = {
             "variant_key": unique_key,
@@ -353,6 +341,7 @@ def get_patients_ajax(request):
                 }
             },
         }
+
     return JsonResponse(result)
 
 

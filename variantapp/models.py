@@ -1,7 +1,7 @@
 from django.db import models
 
 
-class Variant(models.Model):
+class ShortReadVariant(models.Model):
     chromosome = models.TextField()
     position = models.IntegerField()
     variant_id = models.TextField()
@@ -17,15 +17,28 @@ class Variant(models.Model):
         super().save(*arg, **kwargs)
 
 
-class PatientGenotype(models.Model):
+class ShortReadPatient(models.Model):
     patient_id = models.TextField(primary_key=True)
-    genotype_string = models.TextField()
-    # Insert after patient_id & genotype_string
     gender = models.TextField(blank=True, null=True)
     diagnosis = models.TextField(blank=True, null=True)
 
     def __str__(self):
         return self.patient_id
+
+
+class ShortReadGenotype(models.Model):
+    patient = models.ForeignKey("ShortReadPatient", on_delete=models.CASCADE)
+    variant = models.ForeignKey("ShortReadVariant", on_delete=models.CASCADE)
+    genotype = models.CharField(max_length=10)
+
+    class Meta:
+        indexes = [
+            models.Index(fields=["variant", "patient"]),
+            models.Index(fields=["variant", "genotype"]),
+        ]
+
+    def __str__(self):
+        return f"{self.patient.patient_id} @ {self.variant} -> {self.genotype}"
 
 
 class LongReadVariantV2(models.Model):
